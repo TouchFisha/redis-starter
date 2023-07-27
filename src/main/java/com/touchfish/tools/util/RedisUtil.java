@@ -1,5 +1,7 @@
 package com.touchfish.tools.util;
+
 import com.touchfish.tools.config.ExtraRedisConfig;
+import com.touchfish.tools.interf.IRedisConnection;
 import com.touchfish.tools.structure.ExtraRedisProperties;
 import com.touchfish.tools.structure.IPFormat;
 import com.touchfish.tools.structure.RedisFactoryType;
@@ -9,6 +11,8 @@ import com.fasterxml.jackson.annotation.PropertyAccessor;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
+import org.redisson.api.RedissonClient;
+import org.redisson.config.Config;
 import org.springframework.boot.autoconfigure.data.redis.RedisProperties;
 import org.springframework.data.redis.connection.*;
 import org.springframework.data.redis.connection.jedis.JedisConnectionFactory;
@@ -26,9 +30,8 @@ import java.time.Duration;
 import java.util.*;
 
 
-
 @Slf4j
-public class RedisUtil implements Closeable {
+public class RedisUtil implements IRedisConnection<RedisTemplate, RedisConfiguration> {
     public static Builder builder(){
         return new Builder(new RedisUtil());
     }
@@ -64,14 +67,14 @@ public class RedisUtil implements Closeable {
         this.database = database;
         init();
     }
-    public void init() {
+    public boolean init() {
         String[] addresses = address.replace(" ","").split(",");
         hostAndPorts = new HostAndPort[addresses.length];
         for (int i = 0; i < addresses.length; i++) {
             hostAndPorts[i] = AddressUtil.formatAddress(addresses[i]);
         }
         refresh(type);
-        connectionTest();
+        return connectionTest();
     }
     /**
      * 重新建立连接
@@ -87,21 +90,6 @@ public class RedisUtil implements Closeable {
         this.type = RedisType.NONE;
         connect(type);
     }
-    public RedisConfiguration clusterConfig() {
-        RedisClusterConfiguration config = new RedisClusterConfiguration();
-        for (HostAndPort hostAndPort : hostAndPorts) {
-            RedisNode redisNode = new RedisNode(hostAndPort.getHost(), hostAndPort.getPort());
-            config.addClusterNode(redisNode);
-            log.info("Cluster Node: "+hostAndPort);
-        }
-        if (maxRedirects != null) {
-            config.setMaxRedirects(maxRedirects);
-        }
-        if(password != null && !password.isEmpty()) {
-            config.setPassword(password);
-        }
-        return config;
-    }
     /**
      * cluster集群链接
      * @return
@@ -109,11 +97,55 @@ public class RedisUtil implements Closeable {
     public RedisTemplate cluster() {
         if (type != RedisType.CLUSTER) {
             close();
-            template = createRedisTemplate(clusterConfig(), timeout);
             type = RedisType.CLUSTER;
+            template = create(config());
         }
         return template;
     }
+    /**
+     * 单点独立链接
+     * @return
+     */
+    public RedisTemplate standalone() {
+        if (type != RedisType.STANDALONE) {
+            close();
+            type = RedisType.STANDALONE;
+            template = create(config());
+        }
+        return template;
+    }
+
+    /**
+     * 哨兵集群模式
+     * @return
+     */
+    public RedisTemplate sentinel() {
+        if (type != RedisType.SENTINEL) {
+            close();
+            type = RedisType.SENTINEL;
+            template = create(config());
+        }
+        return template;
+    }
+
+    @Override
+    public RedisConfiguration config() {
+        return config(type);
+    }
+
+    @Override
+    public RedisConfiguration config(RedisType redisType) {
+        switch (type) {
+            case STANDALONE:
+                return standaloneConfig();
+            case CLUSTER:
+                return clusterConfig();
+            case SENTINEL:
+                return sentinelConfig();
+        }
+        return null;
+    }
+
     public RedisConfiguration standaloneConfig() {
         RedisStandaloneConfiguration config = new RedisStandaloneConfiguration();
         for (HostAndPort hostAndPort : hostAndPorts) {
@@ -128,18 +160,6 @@ public class RedisUtil implements Closeable {
             config.setDatabase(database);
         }
         return config;
-    }
-    /**
-     * 单点独立链接
-     * @return
-     */
-    public RedisTemplate standalone() {
-        if (type != RedisType.STANDALONE) {
-            close();
-            template = createRedisTemplate(standaloneConfig(), timeout);
-            type = RedisType.STANDALONE;
-        }
-        return template;
     }
     public RedisConfiguration sentinelConfig() {
         RedisSentinelConfiguration config = new RedisSentinelConfiguration();
@@ -157,17 +177,20 @@ public class RedisUtil implements Closeable {
         }
         return config;
     }
-    /**
-     * 哨兵集群模式
-     * @return
-     */
-    public RedisTemplate sentinel() {
-        if (type != RedisType.SENTINEL) {
-            close();
-            template = createRedisTemplate(sentinelConfig(), timeout);
-            type = RedisType.SENTINEL;
+    public RedisConfiguration clusterConfig() {
+        RedisClusterConfiguration config = new RedisClusterConfiguration();
+        for (HostAndPort hostAndPort : hostAndPorts) {
+            RedisNode redisNode = new RedisNode(hostAndPort.getHost(), hostAndPort.getPort());
+            config.addClusterNode(redisNode);
+            log.info("Cluster Node: "+hostAndPort);
         }
-        return template;
+        if (maxRedirects != null) {
+            config.setMaxRedirects(maxRedirects);
+        }
+        if(password != null && !password.isEmpty()) {
+            config.setPassword(password);
+        }
+        return config;
     }
     /**
      * 根据类型获取连接
@@ -186,6 +209,28 @@ public class RedisUtil implements Closeable {
         }
         return null;
     }
+
+    @Override
+    public RedisTemplate create(RedisConfiguration configuration) {
+        RedisConnectionFactory factory = factory(configuration, timeout, factoryType);
+        log.info("Redis \""+name+"\" Factory Created: " + factory.getClass().getSimpleName());
+        if (factory != null) {
+            return create(factory);
+        }
+        return null;
+    }
+    private RedisTemplate create(RedisConnectionFactory connectionFactory){
+        RedisTemplate template = new RedisTemplate();
+        template.setConnectionFactory(connectionFactory);
+        template.setKeySerializer(keySerializer);
+        template.setValueSerializer(valueSerializer);
+        template.setHashKeySerializer(hashKeySerializer);
+        template.setHashValueSerializer(hashValueSerializer);
+        template.afterPropertiesSet();
+        log.info("Redis \""+name+"\" Template Created: " + template.getClass().getSimpleName());
+        return template;
+    }
+
     /**
      * 获取当前类型的连接
      * @return
@@ -249,25 +294,6 @@ public class RedisUtil implements Closeable {
             e.printStackTrace();
         }
         return false;
-    }
-    private RedisTemplate<String, String> createRedisTemplate(RedisConfiguration config, Long timeout) {
-        RedisConnectionFactory factory = factory(config, timeout, factoryType);
-        log.info("Redis \""+name+"\" Factory Created: " + factory.getClass().getSimpleName());
-        if (factory != null) {
-            return createRedisTemplate(factory);
-        }
-        return null;
-    }
-    private RedisTemplate createRedisTemplate(RedisConnectionFactory connectionFactory){
-        RedisTemplate template = new RedisTemplate();
-        template.setConnectionFactory(connectionFactory);
-        template.setKeySerializer(keySerializer);
-        template.setValueSerializer(valueSerializer);
-        template.setHashKeySerializer(hashKeySerializer);
-        template.setHashValueSerializer(hashValueSerializer);
-        template.afterPropertiesSet();
-        log.info("Redis \""+name+"\" Template Created: " + template.getClass().getSimpleName());
-        return template;
     }
 
     /**
@@ -517,7 +543,9 @@ public class RedisUtil implements Closeable {
             return build("");
         }
         public RedisUtil build(String name){
-            target.name = name;
+            if (name != null && !name.isEmpty())
+                target.name = name;
+            else target.name = "New RedisUtil " + UUID.randomUUID();
             target.init();
             return target;
         }

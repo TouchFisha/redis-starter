@@ -1,0 +1,8 @@
+#conf:
+#  loadExtraRedis: true
+#  loadExtraJedis: false
+#  loadExtraRedisson: true
+#  extraRedis:
+#    main:
+#      hostInfo: "::1:26379"
+#      type: SENTINEL

@@ -6,8 +6,8 @@
     <groupId>com.touchfish.tools</groupId>
     <artifactId>redis-starter</artifactId>
     <version>1.0</version>
-    <name>Extra Redis Util Spring Boot Starter</name>
-    <description>Extra Redis Util Spring Boot Starter</description>
+    <name>Redis Spring Boot Starter</name>
+    <description>Redis Spring Boot Starter</description>
     <packaging>jar</packaging>
     <properties>
         <spring-boot.version>2.3.4.RELEASE</spring-boot.version>
