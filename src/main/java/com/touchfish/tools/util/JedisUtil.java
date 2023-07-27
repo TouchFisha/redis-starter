@@ -9,6 +9,9 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class JedisUtil implements Closeable {
+    public static Builder builder() {
+        return new Builder(new JedisUtil());
+    }
     public static class Builder {
         JedisUtil target;
         public Builder() {
@@ -65,17 +68,13 @@ public class JedisUtil implements Closeable {
             return build("");
         }
     }
-    public static Builder builder() {
-        return new Builder(new JedisUtil());
-    }
     private String name;
     private RedisType type = RedisType.NONE;
-    private IPFormat ipFormat;
     private String master = "mymaster";
     private String address;
     private String password;
     private Long timeout = 3000L;
-    private Integer database = 0;
+    private Integer database;
     private Closeable connection;
     private JedisPoolAbstract jedisPool;
     private HostAndPort[] hostAndPorts;
@@ -86,29 +85,11 @@ public class JedisUtil implements Closeable {
     public JedisUtil(String name, RedisType type, String master, String address, String password, int timeout, int database) {
         new Builder(this).type(type).master(master).address(address).password(password).timeout(timeout).database(database).build(name);
     }
-    public HostAndPort formatAddress(String address) {
-        if (address.contains("[") || address.chars().filter(c -> c == ':').count() > 1) {
-            ipFormat = IPFormat.IPV6;
-        } else {
-            ipFormat = IPFormat.IPV4;
-        }
-        address = address.replace("[", "").replace("]", "");
-        String host;
-        String port;
-        if (address.contains(":")){
-            host = address.substring(0, address.lastIndexOf(":"));
-            port = address.substring(address.lastIndexOf(":") + 1);
-        } else {
-            host = address;
-            port = "";
-        }
-        return new HostAndPort(host, Integer.parseInt(port));
-    }
     public void init() {
         String[] addresses = address.replace(" ","").split(",");
         hostAndPorts = new HostAndPort[addresses.length];
         for (int i = 0; i < addresses.length; i++) {
-            hostAndPorts[i] = formatAddress(addresses[i]);
+            hostAndPorts[i] = AddressUtil.formatAddress(addresses[i]);
         }
         refresh(type);
     }
@@ -264,7 +245,10 @@ public class JedisUtil implements Closeable {
         }
     }
     public IPFormat ipFormat() {
-        return ipFormat;
+        if (hostAndPorts.length > 0) {
+            return AddressUtil.getIPFormat(hostAndPorts[0].toString());
+        }
+        return IPFormat.NONE;
     }
     public String get(String key) {
         Object redis = connect();

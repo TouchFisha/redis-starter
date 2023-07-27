@@ -1,7 +1,7 @@
 package com.touchfish.tools.config;
 
 import com.touchfish.tools.structure.ExtraRedisProperties;
-import com.touchfish.tools.util.ExtraRedisUtil;
+import com.touchfish.tools.util.RedisUtil;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,9 +26,9 @@ public class ExtraRedisConfig {
     private Map<String, ExtraRedisProperties> extraRedis = new HashMap<>();
     @Autowired
     public ApplicationContext appContext;
-    public static Map<String, ExtraRedisUtil> redis;
+    public static Map<String, RedisUtil> redis;
     @Bean("redis")
-    public Map<String, ExtraRedisUtil> redis() {
+    public Map<String, RedisUtil> redis() {
         redis = new HashMap<>();
         if (loadExtraRedis) {
             for (Map.Entry<String, ExtraRedisProperties> e : extraRedis.entrySet()) {
@@ -38,8 +38,8 @@ public class ExtraRedisConfig {
         log.info("Extra Redis Util Initialized.  Count: " + redis.size());
         return redis;
     }
-    public ExtraRedisUtil register(String name, ExtraRedisProperties properties, ConfigurableApplicationContext configurableApplicationContext){
-        ExtraRedisUtil redisUtil = ExtraRedisUtil.builder()
+    public RedisUtil register(String name, ExtraRedisProperties properties, ConfigurableApplicationContext configurableApplicationContext){
+        RedisUtil redisUtil = RedisUtil.builder()
                 .address(properties.hostInfo)
                 .maxRedirects(properties.maxRedirects)
                 .password(properties.password)
