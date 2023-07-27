@@ -42,12 +42,12 @@ public class ToolsTestApp implements ApplicationContextAware, CommandLineRunner 
 
     @Override
     public void run(String... args) throws Exception {
-        applicationContext.getBean("main", RedisTemplate.class).opsForValue().set("sb","123213");
-        applicationContext.getBean("main", RedisTemplate.class).opsForValue().set("jedis","SBBBBB");
-        for (String s : applicationContext.getBean("mainRedisson", RedissonClient.class).getKeys().getKeys()) {
-            System.out.println(applicationContext.getBean("main", RedisTemplate.class).opsForValue().get(s));
-            System.out.println(applicationContext.getBean("main", RedisTemplate.class).delete(s));
-        }
+//        applicationContext.getBean("main", RedisTemplate.class).opsForValue().set("sb","123213");
+//        applicationContext.getBean("main", RedisTemplate.class).opsForValue().set("jedis","SBBBBB");
+//        for (String s : applicationContext.getBean("mainRedisson", RedissonClient.class).getKeys().getKeys()) {
+//            System.out.println(applicationContext.getBean("main", RedisTemplate.class).opsForValue().get(s));
+//            System.out.println(applicationContext.getBean("main", RedisTemplate.class).delete(s));
+//        }
 //        applicationContext.getBean("main", Jedis.class).set("sb","123213");
 //        applicationContext.getBean("main", Jedis.class).set("jedis","SBBBBB");
 //        for (String s : applicationContext.getBean("mainRedisson", RedissonClient.class).getKeys().getKeys()) {
