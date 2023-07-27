@@ -13,6 +13,7 @@ import org.springframework.context.ApplicationContextAware;
 import org.springframework.data.redis.core.RedisTemplate;
 import redis.clients.jedis.Jedis;
 
+import javax.annotation.Resource;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -22,6 +23,8 @@ import java.util.List;
 import java.util.Map;
 @SpringBootApplication
 public class ToolsTestApp implements ApplicationContextAware, CommandLineRunner {
+
+
 
     private ApplicationContext applicationContext;
     public static Map<String,Object> controllers;
