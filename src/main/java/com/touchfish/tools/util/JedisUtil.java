@@ -2,12 +2,15 @@ package com.touchfish.tools.util;
 
 import com.touchfish.tools.structure.IPFormat;
 import com.touchfish.tools.structure.RedisType;
+import lombok.extern.slf4j.Slf4j;
 import redis.clients.jedis.*;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
 
+
+@Slf4j
 public class JedisUtil implements Closeable {
     public static Builder builder() {
         return new Builder(new JedisUtil());
