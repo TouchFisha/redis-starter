@@ -49,7 +49,7 @@ conf:
       database: 0
       type: STANDALONE
 ```
-- #### 通过SpringBoot获取对象
+- ### 通过SpringBoot获取对象
 ```java
     
     public ApplicationContext app;
@@ -66,7 +66,7 @@ conf:
     app.getBean("name1Redisson", RedissonClient.class);
     app.getBean("name2Redisson", RedissonClient.class);
 ```
-### 或者通过Map获取工具
+- ### 或者通过Map获取工具
 ```java
     @Resource
     public Map<String,RedisUtil> redis;
