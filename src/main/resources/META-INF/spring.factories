@@ -1,0 +1,1 @@
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=com.touchfish.tools.config.ExtraRedisConfig,com.touchfish.tools.config.RedisConfig,com.touchfish.tools.structure.ExtraRedisProperties
