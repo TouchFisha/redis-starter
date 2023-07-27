@@ -2,8 +2,13 @@
 By Touchfish
 ***
 # Redis Spring Boot Starter
-
-- #### 在application.yml写入对应配置项
+- ### 引入
+```xml
+    <groupId>com.touchfish.tools</groupId>
+    <artifactId>redis-starter</artifactId>
+    <version>1.0</version>
+```
+- ### 在application.yml写入配置项
 ```yml
 # application.yml
 conf:
@@ -61,7 +66,7 @@ conf:
     app.getBean("name1Redisson", RedissonClient.class);
     app.getBean("name2Redisson", RedissonClient.class);
 ```
-#### 或者通过Map获取工具
+### 或者通过Map获取工具
 ```java
     @Resource
     public Map<String,RedisUtil> redis;
