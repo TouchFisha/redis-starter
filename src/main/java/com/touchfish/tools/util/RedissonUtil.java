@@ -182,11 +182,13 @@ public class RedissonUtil implements IRedisConnection<RedissonClient,Config> {
         HostAndPort hostAndPort = AddressUtil.formatAddress(address);
         IPFormat format = AddressUtil.getIPFormat(hostAndPort.toString());
         switch (format) {
-            case IPV6:
+            case IPV4:
                 res = hostAndPort.toString();
                 break;
-            case IPV4:
-                res = "["+hostAndPort.getHost()+"]:"+hostAndPort.getPort();
+            case IPV6:
+                res = hostAndPort.toString();
+//                res = "["+hostAndPort.getHost()+"]:"+hostAndPort.getPort();
+//                System.err.println(res);
                 break;
         }
         return "redis://"+res;
