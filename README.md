@@ -4,7 +4,10 @@ By Touchfish
 # Redis Spring Boot Starter
 - ### 引入
 ```xml
-```[README.md](README.md)
+    <groupId>com.touchfish.tools</groupId>
+    <artifactId>redis-starter</artifactId>
+    <version>1.0</version>
+```
 - ### 在application.yml写入配置项
 ```yml
 # application.yml
