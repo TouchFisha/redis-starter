@@ -30,7 +30,21 @@ import java.util.List;
 public class RedisConfig {
     @Bean(name = "RedisConnectionFactory")
     public RedisConnectionFactory connectionFactory(RedisProperties properties){
-        return RedisUtil.factory(RedisUtil.config(properties), 3000L, RedisFactoryType.JEDIS);
+        RedisFactoryType factoryType = properties.getJedis() != null ? RedisFactoryType.JEDIS : RedisFactoryType.LETTUCE;
+        RedisProperties.Pool pool = null;
+        switch (factoryType) {
+            case JEDIS:
+                if (properties.getJedis() != null) {
+                    pool = properties.getJedis().getPool();
+                }
+                break;
+            case LETTUCE:
+                if (properties.getLettuce() != null) {
+                    pool = properties.getLettuce().getPool();
+                }
+                break;
+        }
+        return RedisUtil.factory(RedisUtil.config(properties), properties.getTimeout() != null ? properties.getTimeout().toMillis() : 3000L, factoryType, pool);
     }
     @Bean
     public RedisTemplate redisTemplate(@Qualifier("RedisConnectionFactory") RedisConnectionFactory redisConnectionFactory) {

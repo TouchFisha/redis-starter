@@ -24,6 +24,7 @@ import org.springframework.data.redis.serializer.Jackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.RedisSerializer;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 import redis.clients.jedis.HostAndPort;
+import redis.clients.jedis.JedisPoolConfig;
 
 import java.io.Closeable;
 import java.time.Duration;
@@ -32,6 +33,7 @@ import java.util.*;
 
 @Slf4j
 public class RedisUtil implements IRedisConnection<RedisTemplate, RedisConfiguration> {
+
     public static Builder builder(){
         return new Builder(new RedisUtil());
     }
@@ -45,6 +47,7 @@ public class RedisUtil implements IRedisConnection<RedisTemplate, RedisConfigura
     private Integer database;
     private Integer maxRedirects;
     private HostAndPort[] hostAndPorts;
+    private RedisProperties.Pool poolProperties;
     private RedisTemplate<String, String> template;
     private RedisSerializer<?> keySerializer;
     private RedisSerializer<?> valueSerializer;
@@ -212,7 +215,7 @@ public class RedisUtil implements IRedisConnection<RedisTemplate, RedisConfigura
 
     @Override
     public RedisTemplate create(RedisConfiguration configuration) {
-        RedisConnectionFactory factory = factory(configuration, timeout, factoryType);
+        RedisConnectionFactory factory = factory(configuration, timeout, factoryType, poolProperties);
         log.info("Redis \""+name+"\" Factory Created: " + factory.getClass().getSimpleName());
         if (factory != null) {
             return create(factory);
@@ -303,13 +306,24 @@ public class RedisUtil implements IRedisConnection<RedisTemplate, RedisConfigura
         template = null;
     }
 
-
-
-
-    public static RedisConnectionFactory lettuceFactory(RedisConfiguration config, Long timeout){
+    public static <T extends GenericObjectPoolConfig> T poolConfig(T poolConfig, RedisProperties.Pool pool) {
+        if (pool != null) {
+            poolConfig.setMaxIdle(pool.getMaxActive());
+            poolConfig.setMaxIdle(pool.getMaxIdle());
+            poolConfig.setMinIdle(pool.getMinIdle());
+            if (pool.getMaxWait() != null) {
+                poolConfig.setMaxWaitMillis(pool.getMaxWait().toMillis());
+            }
+            if (pool.getTimeBetweenEvictionRuns() != null) {
+                poolConfig.setTimeBetweenEvictionRunsMillis(pool.getTimeBetweenEvictionRuns().toMillis());
+            }
+        }
+        return poolConfig;
+    }
+    public static RedisConnectionFactory lettuceFactory(RedisConfiguration config, Long timeout, RedisProperties.Pool poolProps){
         LettucePoolingClientConfiguration clientConfig = LettucePoolingClientConfiguration.builder()
                 .commandTimeout(Duration.ofMillis(timeout))
-                .poolConfig(new GenericObjectPoolConfig())
+                .poolConfig(poolConfig(new GenericObjectPoolConfig(), poolProps))
                 .build();
         LettuceConnectionFactory connectionFactory = new LettuceConnectionFactory(config, clientConfig);
         //如果要使pool参数生效,一定要关闭shareNativeConnection
@@ -318,14 +332,14 @@ public class RedisUtil implements IRedisConnection<RedisTemplate, RedisConfigura
         connectionFactory.afterPropertiesSet();
         return connectionFactory;
     }
-    private static RedisConnectionFactory jedisFactory(RedisConfiguration config, Long timeout){
+    private static RedisConnectionFactory jedisFactory(RedisConfiguration config, Long timeout, RedisProperties.Pool poolProps){
         JedisConnectionFactory factory = null;
         if (config.getClass() == RedisClusterConfiguration.class) {
-            factory = new JedisConnectionFactory((RedisClusterConfiguration) config);
+            factory = new JedisConnectionFactory((RedisClusterConfiguration) config, poolConfig(new JedisPoolConfig(), poolProps));
         } else if (config.getClass() == RedisStandaloneConfiguration.class) {
             factory = new JedisConnectionFactory((RedisStandaloneConfiguration) config);
         } else if (config.getClass() == RedisSentinelConfiguration.class) {
-            factory = new JedisConnectionFactory((RedisSentinelConfiguration) config);
+            factory = new JedisConnectionFactory((RedisSentinelConfiguration) config, poolConfig(new JedisPoolConfig(), poolProps));
         }
         if (factory != null) {
             if (timeout != null) {
@@ -335,12 +349,12 @@ public class RedisUtil implements IRedisConnection<RedisTemplate, RedisConfigura
         }
         return factory;
     }
-    public static RedisConnectionFactory factory(RedisConfiguration config, Long timeout, RedisFactoryType type){
+    public static RedisConnectionFactory factory(RedisConfiguration config, Long timeout, RedisFactoryType type, RedisProperties.Pool poolProps){
         switch (type) {
             case JEDIS:
-                return jedisFactory(config, timeout);
+                return jedisFactory(config, timeout, poolProps);
             case LETTUCE:
-                return lettuceFactory(config, timeout);
+                return lettuceFactory(config, timeout, poolProps);
         }
         return null;
     }
@@ -498,6 +512,11 @@ public class RedisUtil implements IRedisConnection<RedisTemplate, RedisConfigura
         public Builder factory(RedisFactoryType factory) {
             if (factory != null)
                 target.factoryType = factory;
+            return this;
+        }
+        public Builder pool(RedisProperties.Pool pool) {
+            if (pool != null)
+                target.poolProperties = pool;
             return this;
         }
         public Builder master(String master) {

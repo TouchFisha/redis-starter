@@ -16,15 +16,19 @@ public class TestApp implements ApplicationContextAware, CommandLineRunner {
         SpringApplication application = new SpringApplication(TestApp.class);
         application.run(args);
     }
-    public void test(String redisName, String setKey, String setValue){
+    public void test(String redisName, String setKey, String setValue, boolean useRedisson){
         applicationContext.getBean(redisName, RedisTemplate.class).opsForValue().set(setKey,setValue);
-        for (String s : applicationContext.getBean(redisName+"Redisson", RedissonClient.class).getKeys().getKeys()) {
-            System.out.println(s);
-            try {
-                System.out.println(applicationContext.getBean(redisName, RedisTemplate.class).opsForValue().get(s));
-            } catch (Exception e) {
-                e.printStackTrace();
+        if (useRedisson) {
+            for (String s : applicationContext.getBean(redisName+"Redisson", RedissonClient.class).getKeys().getKeys()) {
+                System.out.println(s);
+                try {
+                    System.out.println(applicationContext.getBean(redisName, RedisTemplate.class).opsForValue().get(s));
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
             }
+        } else {
+            System.out.println(applicationContext.getBean(redisName, RedisTemplate.class).opsForValue().get(setKey));
         }
         applicationContext.getBean(redisName, RedisTemplate.class).delete(setKey);
     }
@@ -34,8 +38,9 @@ public class TestApp implements ApplicationContextAware, CommandLineRunner {
     }
     @Override
     public void run(String... args) throws Exception {
-//        test("name0","lalala0","123123");
-//        test("name1","lalala1","2333");
-//        test("name2","lalala2","612313");
+        test("name0","lalala0","123123", true);
+        test("redisTemplate","test:lalalaTEMP","jthdgredwa", false);
+        test("name1","lalala1","2333", true);
+        test("name2","lalala2","612313", true);
     }
 }

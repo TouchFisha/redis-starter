@@ -178,20 +178,18 @@ public class RedissonUtil implements IRedisConnection<RedissonClient,Config> {
         }
     }
     public static String toRedissonAddress(String address) {
-        String res = "";
-        HostAndPort hostAndPort = AddressUtil.formatAddress(address);
-        IPFormat format = AddressUtil.getIPFormat(hostAndPort.toString());
-        switch (format) {
-            case IPV4:
-                res = hostAndPort.toString();
-                break;
-            case IPV6:
-                res = hostAndPort.toString();
-//                res = "["+hostAndPort.getHost()+"]:"+hostAndPort.getPort();
-//                System.err.println(res);
-                break;
-        }
-        return "redis://"+res;
+//        String res = "";
+//        HostAndPort hostAndPort = AddressUtil.formatAddress(address);
+//        IPFormat format = AddressUtil.getIPFormat(hostAndPort.toString());
+//        switch (format) {
+//            case IPV4:
+//                res = hostAndPort.toString();
+//                break;
+//            case IPV6:
+//                res = hostAndPort.toString();
+//                break;
+//        }
+        return "redis://"+AddressUtil.formatAddress(address);
     }
     @Override
     public Config config() {

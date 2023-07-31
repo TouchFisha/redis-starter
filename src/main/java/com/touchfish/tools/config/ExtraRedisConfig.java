@@ -1,6 +1,7 @@
 package com.touchfish.tools.config;
 
 import com.touchfish.tools.structure.ExtraRedisProperties;
+import com.touchfish.tools.structure.RedisFactoryType;
 import com.touchfish.tools.util.JedisUtil;
 import com.touchfish.tools.util.RedisUtil;
 import com.touchfish.tools.util.RedissonUtil;
@@ -8,6 +9,7 @@ import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
+import org.springframework.boot.autoconfigure.data.redis.RedisProperties;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ConfigurableApplicationContext;
@@ -103,6 +105,20 @@ public class ExtraRedisConfig {
         return bean;
     }
     public RedisUtil redisTemplateRegister(String name, ExtraRedisProperties properties, ConfigurableApplicationContext configurableApplicationContext){
+        RedisFactoryType factoryType = properties.jedis != null ? RedisFactoryType.JEDIS : (properties.lettuce != null ? RedisFactoryType.LETTUCE : RedisFactoryType.JEDIS);
+        RedisProperties.Pool pool = null;
+        switch (factoryType) {
+            case JEDIS:
+                if (properties.getJedis() != null) {
+                    pool = properties.getJedis().getPool();
+                }
+                break;
+            case LETTUCE:
+                if (properties.getLettuce() != null) {
+                    pool = properties.getLettuce().getPool();
+                }
+                break;
+        }
         RedisUtil bean = RedisUtil.builder()
                 .address(properties.hostInfo)
                 .maxRedirects(properties.maxRedirects)
@@ -110,6 +126,8 @@ public class ExtraRedisConfig {
                 .timeout(properties.connectionTimeout)
                 .database(properties.database)
                 .master(properties.master)
+                .factory(factoryType)
+                .pool(pool)
                 .keySerializer(properties.keySerializer)
                 .valueSerializer(properties.valueSerializer)
                 .hashKeySerializer(properties.hashKeySerializer)
